@@ -3,6 +3,7 @@ const pages = [
   'pages/error/index',
   'pages/lifecycle/index',
   'pages/image/index',
+  'pages/two-column-swiper/index',
   'pages/query/index',
   'pages/navigate/one/index',
   'pages/navigate/two/index',

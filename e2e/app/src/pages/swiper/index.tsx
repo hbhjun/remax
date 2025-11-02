@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Swiper, SwiperItem, View, Image } from 'remax/ali';
+import { usePageEvent } from 'remax';
+import {
+  Swiper,
+  SwiperItem,
+  View,
+  Image,
+  createSelectorQuery,
+  getSystemInfoSync,
+} from 'remax/ali';
 import './index.css';
 
 const CAROUSEL_DATA = [
@@ -17,6 +25,10 @@ const CarouselPage: React.FC = () => {
   const [current, setCurrent] = React.useState(0);
   const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const isTouchingRef = React.useRef(false);
+  const [swiperMargins, setSwiperMargins] = React.useState({
+    previous: '80rpx',
+    next: '80rpx',
+  });
 
   const clearTimer = React.useCallback(() => {
     if (timerRef.current) {
@@ -43,6 +55,48 @@ const CarouselPage: React.FC = () => {
     startAutoPlay();
     return clearTimer;
   }, [startAutoPlay, clearTimer]);
+
+  const updateSwiperMargins = React.useCallback(() => {
+    try {
+      const query = createSelectorQuery();
+      query.select('#carousel-swiper-wrapper').boundingClientRect();
+      query.exec(res => {
+        const rect = res && res[0];
+        if (!rect || !rect.width) {
+          return;
+        }
+
+        const systemInfo = getSystemInfoSync?.();
+        const windowWidth = systemInfo?.windowWidth || 375;
+        if (!windowWidth) {
+          return;
+        }
+
+        const halfWidthInRpx = (rect.width / 2) * (750 / windowWidth);
+        const formattedHalf = `${Math.max(0, halfWidthInRpx)}rpx`;
+
+        setSwiperMargins(prev => {
+          if (prev.previous === formattedHalf && prev.next === '0rpx') {
+            return prev;
+          }
+          return {
+            previous: formattedHalf,
+            next: '0rpx',
+          };
+        });
+      });
+    } catch (error) {
+      // ????????????
+    }
+  }, []);
+
+  usePageEvent('onReady', updateSwiperMargins);
+  usePageEvent('onShow', updateSwiperMargins);
+  usePageEvent('onResize', updateSwiperMargins);
+
+  React.useEffect(() => {
+    updateSwiperMargins();
+  }, [updateSwiperMargins]);
 
   const handleChange = React.useCallback(
     (event: any) => {
@@ -76,6 +130,7 @@ const CarouselPage: React.FC = () => {
   return (
     <View className="carousel-page">
       <View
+        id="carousel-swiper-wrapper"
         className="carousel-wrapper"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -87,8 +142,8 @@ const CarouselPage: React.FC = () => {
           current={current}
           autoplay={false}
           duration={400}
-          previousMargin="80rpx"
-          nextMargin="80rpx"
+          previousMargin={swiperMargins.previous}
+          nextMargin={swiperMargins.next}
           onChange={handleChange}
         >
           {CAROUSEL_DATA.map(item => (
